@@ -246,66 +246,89 @@ func main() {
 	fmt.Println("✅ Payment Methods selesai")
 
 	// ==================
-	// PROMOS
-	// ==================
-	type PromoSeed struct {
-		Name           string
-		Code           string
-		Type           string
-		Value          float64
-		MinPurchase    float64
-		UsageLimit     int
-		UsageRemaining int
-		Status         string
-		StartDate      time.Time
-		EndDate        time.Time
-	}
+// PROMOS
+// ==================
+type PromoSeed struct {
+	Name        string
+	PromoType   string
+	MinTotal    float64
+	DiscountPct float64
+	CutPrice    float64
+	VoucherCode string
+	MaxUsage    int
+	UsedCount   int
+	Status      string
+	StartDate   time.Time
+	EndDate     time.Time
+}
 
 	promoSeeds := []PromoSeed{
 		{
-			Name: "Diskon 10%", Code: "DISC10", Type: "percentage", Value: 10,
-			MinPurchase: 50000, UsageLimit: 100, UsageRemaining: 100, Status: "active",
-			StartDate: time.Date(2026, 3, 1, 0, 0, 0, 0, time.Local),
-			EndDate:   time.Date(2026, 3, 31, 23, 59, 59, 0, time.Local),
+			Name:        "Diskon 10%",
+			PromoType:   "discount",
+			MinTotal:    50000,
+			DiscountPct: 10,
+			VoucherCode: "DISC10",
+			MaxUsage:    100,
+			UsedCount:   0,
+			Status:      "active",
+			StartDate:   time.Date(2026, 3, 1, 0, 0, 0, 0, time.Local),
+			EndDate:     time.Date(2026, 3, 31, 23, 59, 59, 0, time.Local),
 		},
 		{
-			Name: "Hemat 5 Ribu", Code: "HEMAT5K", Type: "fixed", Value: 5000,
-			MinPurchase: 30000, UsageLimit: 50, UsageRemaining: 50, Status: "active",
-			StartDate: time.Date(2026, 3, 1, 0, 0, 0, 0, time.Local),
-			EndDate:   time.Date(2026, 3, 31, 23, 59, 59, 0, time.Local),
+			Name:        "Hemat 5 Ribu",
+			PromoType:   "cut_price",
+			MinTotal:    30000,
+			CutPrice:    5000,
+			VoucherCode: "HEMAT5K",
+			MaxUsage:    50,
+			UsedCount:   0,
+			Status:      "active",
+			StartDate:   time.Date(2026, 3, 1, 0, 0, 0, 0, time.Local),
+			EndDate:     time.Date(2026, 3, 31, 23, 59, 59, 0, time.Local),
 		},
 		{
-			Name: "Promo Lebaran", Code: "LEBARAN20", Type: "percentage", Value: 20,
-			MinPurchase: 100000, UsageLimit: 30, UsageRemaining: 30, Status: "upcoming",
-			StartDate: time.Date(2026, 4, 1, 0, 0, 0, 0, time.Local),
-			EndDate:   time.Date(2026, 4, 10, 23, 59, 59, 0, time.Local),
-		},
-		{
-			Name: "Flash Sale", Code: "FLASH15", Type: "percentage", Value: 15,
-			MinPurchase: 0, UsageLimit: 20, UsageRemaining: 0, Status: "finished",
-			StartDate: time.Date(2026, 2, 1, 0, 0, 0, 0, time.Local),
-			EndDate:   time.Date(2026, 2, 28, 23, 59, 59, 0, time.Local),
+			Name:        "Promo Lebaran",
+			PromoType:   "discount",
+			MinTotal:    100000,
+			DiscountPct: 20,
+			VoucherCode: "LEBARAN20",
+			MaxUsage:    30,
+			UsedCount:   0,
+			Status:      "inactive",
+			StartDate:   time.Date(2026, 4, 1, 0, 0, 0, 0, time.Local),
+			EndDate:     time.Date(2026, 4, 10, 23, 59, 59, 0, time.Local),
 		},
 	}
 
 	for _, p := range promoSeeds {
 		var existing model.Promo
-		if config.DB.Where("code = ?", p.Code).First(&existing).Error != nil {
+		if config.DB.Where("voucher_code = ?", p.VoucherCode).First(&existing).Error != nil {
+
 			promo := model.Promo{
-				Name:           p.Name,
-				Code:           p.Code,
-				Type:           p.Type,
-				Value:          p.Value,
-				StartDate:      p.StartDate,
-				EndDate:        p.EndDate,
-				MinPurchase:    p.MinPurchase,
-				UsageLimit:     p.UsageLimit,
-				UsageRemaining: p.UsageRemaining,
-				Status:         p.Status,
+				Name:        p.Name,
+				PromoType:   p.PromoType,
+				AppliesTo:   "all",
+				Condition:   "total",
+				MinTotal:    p.MinTotal,
+				DiscountPct: p.DiscountPct,
+				CutPrice:    p.CutPrice,
+				VoucherType: "custom",
+				VoucherCode: p.VoucherCode,
+				MaxUsage:    p.MaxUsage,
+				UsedCount:   p.UsedCount,
+				Status:      p.Status,
+				StartDate:   p.StartDate,
+				EndDate:     p.EndDate,
+				ActiveDays:  "1,2,3,4,5,6,7",
+				StartTime:   "00:00",
+				EndTime:     "23:59",
 			}
+
 			config.DB.Create(&promo)
 		}
 	}
+
 	fmt.Println("✅ Promos selesai")
 
 	// ==================

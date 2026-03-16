@@ -58,3 +58,12 @@ func GetShiftReport(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "OK", "data": result})
 }
+
+func GetDashboardSummary(c *gin.Context) {
+	data, err := service.GetDashboardSummary()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "OK", "data": data})
+}

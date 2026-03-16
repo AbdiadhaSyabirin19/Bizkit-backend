@@ -129,6 +129,17 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/reports/trend", handler.GetTrendReport)
 			protected.GET("/reports/attendance", handler.GetAttendanceReport)
 			protected.GET("/reports/shift", handler.GetShiftReport)
+			protected.GET("/reports/dashboard-summary", handler.GetDashboardSummary)
+
+			// Generic Upload
+			protected.POST("/upload", handler.UploadFile)
+
+			// Customer
+			protected.GET("/customers", handler.GetAllCustomers)
+			protected.GET("/customers/:id", handler.GetCustomerByID)
+			protected.POST("/customers", handler.CreateCustomer)
+			protected.PUT("/customers/:id", handler.UpdateCustomer)
+			protected.DELETE("/customers/:id", handler.DeleteCustomer)
 
 			// Setting
 			protected.GET("/settings", handler.GetSetting)

@@ -11,6 +11,7 @@ type Product struct {
 	BrandID     *uint             `json:"brand_id"`
 	UnitID      *uint             `json:"unit_id"`
 	Price       float64           `json:"price"`
+	Stock       int               `json:"stock"`
 	Image       string            `json:"image"`
 	Status      string            `json:"status"`
 	Category    *Category         `json:"category,omitempty" gorm:"foreignKey:CategoryID"`

@@ -15,6 +15,7 @@ type ProductRequest struct {
 	BrandID     *uint   `json:"brand_id"`
 	UnitID      *uint   `json:"unit_id"`
 	Price       float64 `json:"price"`
+	Stock       int     `json:"stock"`
 	Image       string  `json:"image"`
 	Status      string  `json:"status"`
 	VariantIDs  []uint  `json:"variant_ids"`
@@ -45,6 +46,7 @@ func CreateProduct(req ProductRequest) (*model.Product, error) {
 		BrandID:     req.BrandID,
 		UnitID:      req.UnitID,
 		Price:       req.Price,
+		Stock:       req.Stock,
 		Image:       req.Image,
 		Status:      req.Status,
 	}
@@ -67,6 +69,7 @@ func UpdateProduct(id uint, req ProductRequest) (*model.Product, error) {
 	product.BrandID = req.BrandID
 	product.UnitID = req.UnitID
 	product.Price = req.Price
+	product.Stock = req.Stock
 	if req.Image != "" {
 		product.Image = req.Image
 	}

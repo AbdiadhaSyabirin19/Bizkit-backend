@@ -210,3 +210,40 @@ func GetShiftReport(startStr, endStr string) (map[string]interface{}, error) {
 		"shifts":         shifts,
 	}, nil
 }
+
+func GetDashboardSummary() (map[string]interface{}, error) {
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	todayEnd := todayStart.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+
+	// 1. Sales Today
+	sales, _ := repository.GetSalesByPeriod(todayStart, todayEnd)
+	var omzetToday float64
+	for _, s := range sales {
+		omzetToday += s.GrandTotal
+	}
+
+	// 2. Transaksi Today
+	transCount := len(sales)
+
+	// 3. Active Shift
+	activeShift, _ := repository.GetActiveShiftAny()
+	
+	// 4. Low Stock Products (misal stock <= 5)
+	products, _ := repository.GetAllProducts("")
+	lowStockCount := 0
+	for _, p := range products {
+		if p.Stock <= 5 {
+			lowStockCount++
+		}
+	}
+
+	return map[string]interface{}{
+		"date":           now.Format("2006-01-02"),
+		"omzet_today":    omzetToday,
+		"trans_count":    transCount,
+		"has_active_shift": activeShift != nil && activeShift.ID != 0,
+		"active_shift":   activeShift,
+		"low_stock_count": lowStockCount,
+	}, nil
+}

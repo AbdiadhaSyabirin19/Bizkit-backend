@@ -50,6 +50,7 @@ func ConnectDB() {
 		&model.PromoItem{},
 		&model.PromoSpecialPrice{},
 		&model.PromoVoucher{},
+		&model.Customer{},
 	)
 
 	DB = db

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"bizkit-backend/config"
 	"bizkit-backend/internal/model"
 	"bizkit-backend/internal/repository"
 )
@@ -21,6 +22,7 @@ type SaleItemRequest struct {
 
 type SaleRequest struct {
 	PaymentMethodID uint              `json:"payment_method_id" binding:"required"`
+	PriceCategoryID *uint             `json:"price_category_id"`
 	PromoID         *uint             `json:"promo_id"`
 	CustomerName    string            `json:"customer_name" binding:"required"`
 	Source          string            `json:"source"`
@@ -42,7 +44,17 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 			return nil, 0, 0, 0, fmt.Errorf("Produk ID %d tidak ditemukan", itemReq.ProductID)
 		}
 
-		itemSubtotal := product.Price * float64(itemReq.Quantity)
+		// Ambil harga (check multi-harga if category provided)
+		basePrice := product.Price
+		if req.PriceCategoryID != nil {
+			var customPrice model.ProductPrice
+			err := config.DB.Where("product_id = ? AND price_category_id = ?", product.ID, *req.PriceCategoryID).First(&customPrice).Error
+			if err == nil && customPrice.Price > 0 {
+				basePrice = customPrice.Price
+			}
+		}
+
+		itemSubtotal := basePrice * float64(itemReq.Quantity)
 
 		var saleItemVariants []model.SaleItemVariant
 		for _, v := range itemReq.Variants {
@@ -61,9 +73,10 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 		saleItems = append(saleItems, model.SaleItem{
 			ProductID: itemReq.ProductID,
 			Quantity:  itemReq.Quantity,
-			BasePrice: product.Price,
+			BasePrice: basePrice,
 			Subtotal:  itemSubtotal,
 			Variants:  saleItemVariants,
+			Product:   *product, // Penting untuk promo check
 		})
 	}
 
@@ -144,6 +157,7 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		UserID:          userID,
 		CustomerName:    req.CustomerName,
 		PaymentMethodID: req.PaymentMethodID,
+		PriceCategoryID: req.PriceCategoryID,
 		PromoID:         req.PromoID,
 		Subtotal:        subtotal,
 		DiscountTotal:   discountTotal,
@@ -181,6 +195,7 @@ func UpdateSale(id uint, req SaleRequest) (*model.Sale, error) {
 
 	existing.CustomerName = req.CustomerName
 	existing.PaymentMethodID = req.PaymentMethodID
+	existing.PriceCategoryID = req.PriceCategoryID
 	existing.PromoID = req.PromoID
 	existing.Subtotal = subtotal
 	existing.DiscountTotal = discountTotal

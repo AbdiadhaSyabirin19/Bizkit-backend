@@ -8,6 +8,7 @@ type Sale struct {
 	UserID          uint          `json:"user_id"`
 	CustomerName    string        `json:"customer_name"`
 	PaymentMethodID uint          `json:"payment_method_id"`
+	PriceCategoryID *uint         `json:"price_category_id"`
 	PromoID         *uint         `json:"promo_id"`
 	Subtotal        float64       `json:"subtotal"`
 	DiscountTotal   float64       `json:"discount_total"`
@@ -15,6 +16,7 @@ type Sale struct {
 	Source          string        `json:"source" gorm:"default:dashboard"`
 	User            User          `json:"user" gorm:"foreignKey:UserID"`
 	PaymentMethod   PaymentMethod `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
+	PriceCategory   *PriceCategory `json:"price_category" gorm:"foreignKey:PriceCategoryID"`
 	Promo           *Promo        `json:"promo" gorm:"foreignKey:PromoID"`
 	Items           []SaleItem    `json:"items" gorm:"foreignKey:SaleID"`
 }

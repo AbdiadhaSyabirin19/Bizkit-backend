@@ -1,0 +1,14 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: bizkit_db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=bizkit_db
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

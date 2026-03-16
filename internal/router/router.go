@@ -3,9 +3,12 @@ package router
 import (
 	"bizkit-backend/internal/handler"
 	"bizkit-backend/internal/middleware"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
@@ -18,6 +21,10 @@ func SetupRouter() *gin.Engine {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	// Serve Swagger UI
+	r.StaticFile("/swagger.yaml", "docs/swagger.yaml")
+	r.Static("/swagger", "./swagger-ui")
 
 	api := r.Group("/api")
 	{

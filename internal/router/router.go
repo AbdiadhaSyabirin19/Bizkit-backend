@@ -113,6 +113,8 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/sales", handler.GetAllSales)
 			protected.GET("/sales/daily", handler.GetDailySales)
 			protected.GET("/sales/:id", handler.GetSaleByID)
+			protected.PUT("/sales/:id", handler.UpdateSale)
+			protected.DELETE("/sales/:id", handler.DeleteSale)
 
 			// Shifts — di dalam protected (butuh auth)
 			protected.POST("/shifts/open", handler.OpenShift)

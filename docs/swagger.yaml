@@ -1,0 +1,921 @@
+openapi: 3.0.0
+info:
+  title: Bizkit Backend API
+  version: 1.0.0
+  description: API documentation for the Bizkit backend application.
+servers:
+  - url: http://localhost:8080/
+    description: Local development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /api/ping:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+    head:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+
+  /api/auth/login:
+    post:
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+
+  /api/me:
+    get:
+      summary: Get current authenticated user
+      responses:
+        '200':
+          description: OK
+
+  /api/auth/change-password:
+    put:
+      summary: Change password of current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+  # --- Categories ---
+  /api/categories:
+    get:
+      summary: Get all categories
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create category
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/categories/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get category by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update category by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete category by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Brands ---
+  /api/brands:
+    get:
+      summary: Get all brands
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create brand
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/brands/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get brand by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update brand by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete brand by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Units ---
+  /api/units:
+    get:
+      summary: Get all units
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create unit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/units/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get unit by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update unit by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete unit by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Variant Categories ---
+  /api/variants:
+    get:
+      summary: Get all variant categories
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create variant category
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/variants/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get variant category by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update variant category by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete variant category by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Products ---
+  /api/products:
+    get:
+      summary: Get all products
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create product
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/products/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get product by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update product by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete product by ID
+      responses:
+        '200':
+          description: OK
+  /api/products/{id}/prices:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get product prices
+      responses:
+        '200':
+          description: OK
+  /api/products/{id}/promos:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get promos by product
+      responses:
+        '200':
+          description: OK
+
+  # --- Roles ---
+  /api/roles:
+    get:
+      summary: Get all roles
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create role
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/roles/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get role by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update role by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete role by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Users ---
+  /api/users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get user by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update user by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete user by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Payment Methods ---
+  /api/payment-methods:
+    get:
+      summary: Get all payment methods
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create payment method
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/payment-methods/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get payment method by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update payment method by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete payment method by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Promos ---
+  /api/promos:
+    get:
+      summary: Get all promos
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create promo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/promos/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get promo by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update promo by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete promo by ID
+      responses:
+        '200':
+          description: OK
+  /api/promos/check:
+    post:
+      summary: Check auto promos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/promos/check-voucher:
+    post:
+      summary: Check voucher
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+  # --- Sales ---
+  /api/sales:
+    get:
+      summary: Get all sales
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create sale
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/sales/daily:
+    get:
+      summary: Get daily sales
+      responses:
+        '200':
+          description: OK
+  /api/sales/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get sale by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update sale by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete sale by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Shifts ---
+  /api/shifts/open:
+    post:
+      summary: Open a shift
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/shifts/close:
+    post:
+      summary: Close a shift
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/shifts/active:
+    get:
+      summary: Get active shift
+      responses:
+        '200':
+          description: OK
+  /api/shifts/history:
+    get:
+      summary: Get shift history
+      responses:
+        '200':
+          description: OK
+  /api/shifts/{id}/summary:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get shift summary
+      responses:
+        '200':
+          description: OK
+  /api/shifts/{id}/notes:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update shift notes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+  # --- Reports ---
+  /api/reports/sales:
+    get:
+      summary: Get sales report
+      responses:
+        '200':
+          description: OK
+  /api/reports/trend:
+    get:
+      summary: Get trend report
+      responses:
+        '200':
+          description: OK
+  /api/reports/attendance:
+    get:
+      summary: Get attendance report
+      responses:
+        '200':
+          description: OK
+  /api/reports/shift:
+    get:
+      summary: Get shift report
+      responses:
+        '200':
+          description: OK
+  /api/reports/dashboard-summary:
+    get:
+      summary: Get dashboard summary
+      responses:
+        '200':
+          description: OK
+
+  # --- Generic Upload ---
+  /api/upload:
+    post:
+      summary: Upload file
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+
+  # --- Customers ---
+  /api/customers:
+    get:
+      summary: Get all customers
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/customers/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get customer by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update customer by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete customer by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Settings ---
+  /api/settings:
+    get:
+      summary: Get settings
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+  # --- Outlets ---
+  /api/outlets:
+    get:
+      summary: Get all outlets
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create outlet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/outlets/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get outlet by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update outlet by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete outlet by ID
+      responses:
+        '200':
+          description: OK
+
+  # --- Multi Harga (Price Categories) ---
+  /api/price-categories:
+    get:
+      summary: Get all price categories
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create price category
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Created
+  /api/price-categories/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get price category by ID
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update price category by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete price category by ID
+      responses:
+        '200':
+          description: OK
+
+  /api/price-categories/{id}/products:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get product prices by category
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Upsert product price
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+
+  /api/price-categories/{id}/products/{product_id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: product_id
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete product price
+      responses:
+        '200':
+          description: OK
+
+  # --- Attendances ---
+  /api/attendances/checkin:
+    post:
+      summary: Check in attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/attendances/{id}/checkout:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Check out attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+  /api/attendances/today:
+    get:
+      summary: Get today's attendance
+      responses:
+        '200':
+          description: OK
+  /api/attendances/history:
+    get:
+      summary: Get attendance history
+      responses:
+        '200':
+          description: OK

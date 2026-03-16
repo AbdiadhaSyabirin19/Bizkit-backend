@@ -12,6 +12,8 @@ type Sale struct {
 	PromoID         *uint         `json:"promo_id"`
 	Subtotal        float64       `json:"subtotal"`
 	DiscountTotal   float64       `json:"discount_total"`
+	ManualDiscount  float64       `json:"manual_discount" gorm:"default:0"`
+	AdditionalFee   float64       `json:"additional_fee" gorm:"default:0"`
 	GrandTotal      float64       `json:"grand_total"`
 	Source          string        `json:"source" gorm:"default:dashboard"`
 	User            User          `json:"user" gorm:"foreignKey:UserID"`
@@ -27,6 +29,7 @@ type SaleItem struct {
 	ProductID uint              `json:"product_id"`
 	Quantity  int               `json:"quantity"`
 	BasePrice float64           `json:"base_price"`
+	Discount  float64           `json:"discount" gorm:"default:0"`
 	Subtotal  float64           `json:"subtotal"`
 	Product   Product           `json:"product" gorm:"foreignKey:ProductID"`
 	Variants  []SaleItemVariant `json:"variants" gorm:"foreignKey:SaleItemID"`

@@ -17,6 +17,7 @@ type SaleItemVariantRequest struct {
 type SaleItemRequest struct {
 	ProductID uint                     `json:"product_id" binding:"required"`
 	Quantity  int                      `json:"quantity" binding:"required"`
+	Discount  float64                  `json:"discount"`
 	Variants  []SaleItemVariantRequest `json:"variants"`
 }
 
@@ -26,6 +27,8 @@ type SaleRequest struct {
 	PromoID         *uint             `json:"promo_id"`
 	CustomerName    string            `json:"customer_name" binding:"required"`
 	Source          string            `json:"source"`
+	ManualDiscount  float64           `json:"manual_discount"`
+	AdditionalFee   float64           `json:"additional_fee"`
 	Items           []SaleItemRequest `json:"items" binding:"required"`
 }
 
@@ -34,14 +37,14 @@ func generateInvoiceNumber() string {
 	return fmt.Sprintf("INV-%s-%d", now.Format("20060102"), now.UnixNano()%10000)
 }
 
-func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, float64, error) {
+func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, float64, float64, float64, error) {
 	var subtotal float64
 	var saleItems []model.SaleItem
 
 	for _, itemReq := range req.Items {
 		product, err := repository.GetProductByID(itemReq.ProductID)
 		if err != nil {
-			return nil, 0, 0, 0, fmt.Errorf("Produk ID %d tidak ditemukan", itemReq.ProductID)
+			return nil, 0, 0, 0, 0, 0, fmt.Errorf("Produk ID %d tidak ditemukan", itemReq.ProductID)
 		}
 
 		// Ambil harga (check multi-harga if category provided)
@@ -60,7 +63,7 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 		for _, v := range itemReq.Variants {
 			var option model.VariantOption
 			if err := repository.GetVariantOptionByID(v.VariantOptionID, &option); err != nil {
-				return nil, 0, 0, 0, fmt.Errorf("Variant option ID %d tidak ditemukan", v.VariantOptionID)
+				return nil, 0, 0, 0, 0, 0, fmt.Errorf("Variant option ID %d tidak ditemukan", v.VariantOptionID)
 			}
 			itemSubtotal += option.AdditionalPrice * float64(itemReq.Quantity)
 			saleItemVariants = append(saleItemVariants, model.SaleItemVariant{
@@ -69,11 +72,14 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 			})
 		}
 
+		itemSubtotal -= itemReq.Discount
+
 		subtotal += itemSubtotal
 		saleItems = append(saleItems, model.SaleItem{
 			ProductID: itemReq.ProductID,
 			Quantity:  itemReq.Quantity,
 			BasePrice: basePrice,
+			Discount:  itemReq.Discount,
 			Subtotal:  itemSubtotal,
 			Variants:  saleItemVariants,
 			Product:   *product, // Penting untuk promo check
@@ -82,11 +88,11 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 
 	discountTotal, err := calculatePromoDiscount(req.PromoID, subtotal, saleItems)
 	if err != nil {
-		return nil, 0, 0, 0, err
+		return nil, 0, 0, 0, 0, 0, err
 	}
 
-	grandTotal := subtotal - discountTotal
-	return saleItems, subtotal, discountTotal, grandTotal, nil
+	grandTotal := (subtotal - discountTotal - req.ManualDiscount) + req.AdditionalFee
+	return saleItems, subtotal, discountTotal, req.ManualDiscount, req.AdditionalFee, grandTotal, nil
 }
 
 func calculatePromoDiscount(promoID *uint, subtotal float64, items []model.SaleItem) (float64, error) {
@@ -147,7 +153,7 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		return nil, errors.New("Item transaksi tidak boleh kosong")
 	}
 
-	saleItems, subtotal, discountTotal, grandTotal, err := calculateSaleDetails(req)
+	saleItems, subtotal, discountTotal, manualDiscount, additionalFee, grandTotal, err := calculateSaleDetails(req)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +167,8 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		PromoID:         req.PromoID,
 		Subtotal:        subtotal,
 		DiscountTotal:   discountTotal,
+		ManualDiscount:  manualDiscount,
+		AdditionalFee:   additionalFee,
 		GrandTotal:      grandTotal,
 		Source:          req.Source,
 		Items:           saleItems,
@@ -188,7 +196,7 @@ func UpdateSale(id uint, req SaleRequest) (*model.Sale, error) {
 		return nil, errors.New("Transaksi tidak ditemukan")
 	}
 
-	saleItems, subtotal, discountTotal, grandTotal, err := calculateSaleDetails(req)
+	saleItems, subtotal, discountTotal, manualDiscount, additionalFee, grandTotal, err := calculateSaleDetails(req)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +207,8 @@ func UpdateSale(id uint, req SaleRequest) (*model.Sale, error) {
 	existing.PromoID = req.PromoID
 	existing.Subtotal = subtotal
 	existing.DiscountTotal = discountTotal
+	existing.ManualDiscount = manualDiscount
+	existing.AdditionalFee = additionalFee
 	existing.GrandTotal = grandTotal
 	existing.Source = req.Source
 	existing.Items = saleItems

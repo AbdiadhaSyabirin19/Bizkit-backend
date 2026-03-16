@@ -72,17 +72,22 @@ func DeleteSale(id uint) error {
 	return config.DB.Delete(&model.Sale{}, id).Error
 }
 
-func GetDailySales(date time.Time) ([]model.Sale, error) {
+func GetDailySales(date time.Time, source string) ([]model.Sale, error) {
 	var sales []model.Sale
 	start := date.Format("2006-01-02") + " 00:00:00"
 	end := date.Format("2006-01-02") + " 23:59:59"
 
-	result := config.DB.
+	query := config.DB.
+		Preload("User").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
-		Where("created_at BETWEEN ? AND ?", start, end).
-		Order("created_at DESC").
-		Find(&sales)
+		Where("created_at BETWEEN ? AND ?", start, end)
+
+	if source != "" {
+		query = query.Where("source = ?", source)
+	}
+
+	result := query.Order("created_at DESC").Find(&sales)
 	return sales, result.Error
 }
 func GetSalesByTimeRange(start, end time.Time, userID uint) ([]model.Sale, error) {

@@ -12,6 +12,7 @@ type Sale struct {
 	Subtotal        float64       `json:"subtotal"`
 	DiscountTotal   float64       `json:"discount_total"`
 	GrandTotal      float64       `json:"grand_total"`
+	Source          string        `json:"source" gorm:"default:dashboard"`
 	User            User          `json:"user" gorm:"foreignKey:UserID"`
 	PaymentMethod   PaymentMethod `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
 	Promo           *Promo        `json:"promo" gorm:"foreignKey:PromoID"`

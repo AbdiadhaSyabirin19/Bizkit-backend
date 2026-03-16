@@ -23,6 +23,7 @@ type SaleRequest struct {
 	PaymentMethodID uint              `json:"payment_method_id" binding:"required"`
 	PromoID         *uint             `json:"promo_id"`
 	CustomerName    string            `json:"customer_name" binding:"required"`
+	Source          string            `json:"source"`
 	Items           []SaleItemRequest `json:"items" binding:"required"`
 }
 
@@ -109,7 +110,12 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		Subtotal:        subtotal,
 		DiscountTotal:   discountTotal,
 		GrandTotal:      grandTotal,
+		Source:          req.Source,
 		Items:           saleItems,
+	}
+
+	if sale.Source == "" {
+		sale.Source = "dashboard"
 	}
 
 	if err := repository.CreateSale(&sale); err != nil {
@@ -141,6 +147,7 @@ func UpdateSale(id uint, req SaleRequest) (*model.Sale, error) {
 	existing.Subtotal = subtotal
 	existing.DiscountTotal = discountTotal
 	existing.GrandTotal = grandTotal
+	existing.Source = req.Source
 	existing.Items = saleItems
 
 	if err := repository.UpdateSale(existing); err != nil {
@@ -167,7 +174,7 @@ func GetSaleByID(id uint) (*model.Sale, error) {
 	return sale, nil
 }
 
-func GetDailySales(dateStr string) (map[string]interface{}, error) {
+func GetDailySales(dateStr, source string) (map[string]interface{}, error) {
 	var date time.Time
 	var err error
 
@@ -180,7 +187,7 @@ func GetDailySales(dateStr string) (map[string]interface{}, error) {
 		}
 	}
 
-	sales, err := repository.GetDailySales(date)
+	sales, err := repository.GetDailySales(date, source)
 	if err != nil {
 		return nil, err
 	}

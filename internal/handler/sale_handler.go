@@ -61,8 +61,9 @@ func GetSaleByID(c *gin.Context) {
 
 func GetDailySales(c *gin.Context) {
 	date := c.Query("date")
+	source := c.Query("source")
 
-	result, err := service.GetDailySales(date)
+	result, err := service.GetDailySales(date, source)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return

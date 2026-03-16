@@ -67,28 +67,66 @@ func calculateSaleDetails(req SaleRequest) ([]model.SaleItem, float64, float64, 
 		})
 	}
 
-	var discountTotal float64
-	if req.PromoID != nil {
-		promo, err := repository.GetPromoByID(*req.PromoID)
-		if err == nil && promo.Status == "active" {
-			if promo.MaxUsage > 0 && promo.UsedCount >= promo.MaxUsage {
-				return nil, 0, 0, 0, errors.New("Promo sudah mencapai batas penggunaan")
-			}
-
-			switch promo.PromoType {
-			case "discount":
-				discountTotal = subtotal * (promo.DiscountPct / 100)
-				if promo.MaxDiscount > 0 && discountTotal > promo.MaxDiscount {
-					discountTotal = promo.MaxDiscount
-				}
-			case "cut_price":
-				discountTotal = promo.CutPrice
-			}
-		}
+	discountTotal, err := calculatePromoDiscount(req.PromoID, subtotal, saleItems)
+	if err != nil {
+		return nil, 0, 0, 0, err
 	}
 
 	grandTotal := subtotal - discountTotal
 	return saleItems, subtotal, discountTotal, grandTotal, nil
+}
+
+func calculatePromoDiscount(promoID *uint, subtotal float64, items []model.SaleItem) (float64, error) {
+	if promoID == nil {
+		return 0, nil
+	}
+
+	promo, err := repository.GetPromoByID(*promoID)
+	if err != nil {
+		return 0, errors.New("Promo tidak ditemukan")
+	}
+
+	// Persiapkan request untuk pengecekan promo
+	var checkItems []CheckPromoItem
+	for _, it := range items {
+		checkItems = append(checkItems, CheckPromoItem{
+			ProductID:  it.ProductID,
+			CategoryID: it.Product.CategoryID,
+			BrandID:    it.Product.BrandID,
+			Quantity:   it.Quantity,
+			Price:      it.BasePrice + calculateVariantExtra(it),
+		})
+	}
+
+	checkReq := CheckPromoRequest{
+		Items:    checkItems,
+		Subtotal: subtotal,
+	}
+
+	now := time.Now()
+	if promo.Status != "active" {
+		return 0, errors.New("Promo sudah tidak aktif")
+	}
+	if !isPromoValid(*promo, now) {
+		return 0, errors.New("Promo sedang tidak berlaku (cek tanggal/jam/hari)")
+	}
+	if !isPromoApplicable(*promo, checkReq) {
+		return 0, errors.New("Syarat promo tidak terpenuhi (min. qty/total atau produk tidak sesuai)")
+	}
+
+	if promo.MaxUsage > 0 && promo.UsedCount >= promo.MaxUsage {
+		return 0, errors.New("Promo sudah mencapai batas penggunaan")
+	}
+
+	return calcDiscount(*promo, checkReq), nil
+}
+
+func calculateVariantExtra(item model.SaleItem) float64 {
+	var extra float64
+	for _, v := range item.Variants {
+		extra += v.AdditionalPrice
+	}
+	return extra
 }
 
 func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {

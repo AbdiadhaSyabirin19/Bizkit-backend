@@ -397,15 +397,46 @@ func isPromoApplicable(promo model.Promo, req CheckPromoRequest) bool {
 }
 
 func calcDiscount(promo model.Promo, req CheckPromoRequest) float64 {
+	// Hitung subtotal hanya untuk item yang masuk dalam cakupan promo
+	applicableSubtotal := 0.0
+	if promo.AppliesTo == "all" {
+		applicableSubtotal = req.Subtotal
+	} else {
+		for _, item := range req.Items {
+			isMatch := false
+			for _, pi := range promo.Items {
+				if (pi.RefType == "product" && pi.RefID == item.ProductID) ||
+					(pi.RefType == "category" && item.CategoryID != nil && pi.RefID == *item.CategoryID) ||
+					(pi.RefType == "brand" && item.BrandID != nil && pi.RefID == *item.BrandID) {
+					isMatch = true
+					break
+				}
+			}
+			if isMatch {
+				applicableSubtotal += item.Price * float64(item.Quantity)
+			}
+		}
+	}
+
+	if applicableSubtotal <= 0 {
+		return 0
+	}
+
 	switch promo.PromoType {
 	case "discount":
-		discount := req.Subtotal * (promo.DiscountPct / 100)
+		discount := applicableSubtotal * (promo.DiscountPct / 100)
 		if promo.MaxDiscount > 0 && discount > promo.MaxDiscount {
 			discount = promo.MaxDiscount
 		}
 		return discount
 	case "cut_price":
-		return promo.CutPrice
+		// Potongan harga tetap (cut_price) biasanya langsung memotong total akhir, 
+		// tapi kita batasi jangan sampai melebihi subtotal item yang promo
+		discount := promo.CutPrice
+		if discount > applicableSubtotal {
+			discount = applicableSubtotal
+		}
+		return discount
 	case "special_price":
 		// Hitung selisih harga normal vs special price per item
 		var saving float64

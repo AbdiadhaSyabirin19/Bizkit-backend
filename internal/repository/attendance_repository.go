@@ -51,6 +51,7 @@ func GetAttendanceByDate(date time.Time) ([]model.Attendance, error) {
 	err := config.DB.
 		Preload("User").
 		Preload("User.Role").
+		Preload("User.Outlet").
 		Where("check_in >= ? AND check_in < ?", start, end).
 		Order("check_in ASC").
 		Find(&list).Error

@@ -91,11 +91,11 @@ func GetDailySales(date time.Time, source string) ([]model.Sale, error) {
 	return sales, result.Error
 }
 func GetSalesByTimeRange(start, end time.Time, userID uint) ([]model.Sale, error) {
-    var sales []model.Sale
-    err := config.DB.
-        Where("user_id = ? AND created_at BETWEEN ? AND ?", userID, start, end).
-        Find(&sales).Error
-    return sales, err
+	var sales []model.Sale
+	err := config.DB.
+		Where("user_id = ? AND created_at BETWEEN ? AND ?", userID, start, end).
+		Find(&sales).Error
+	return sales, err
 }
 
 // GetSalesByPeriod — semua sales dalam rentang waktu, dengan relasi lengkap

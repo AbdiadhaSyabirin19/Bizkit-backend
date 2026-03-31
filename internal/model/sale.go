@@ -4,23 +4,25 @@ import "gorm.io/gorm"
 
 type Sale struct {
 	gorm.Model
-	InvoiceNumber   string        `json:"invoice_number" gorm:"unique;not null"`
-	UserID          uint          `json:"user_id"`
-	CustomerName    string        `json:"customer_name"`
-	PaymentMethodID uint          `json:"payment_method_id"`
-	PriceCategoryID *uint         `json:"price_category_id"`
-	PromoID         *uint         `json:"promo_id"`
-	Subtotal        float64       `json:"subtotal"`
-	DiscountTotal   float64       `json:"discount_total"`
-	ManualDiscount  float64       `json:"manual_discount" gorm:"default:0"`
-	AdditionalFee   float64       `json:"additional_fee" gorm:"default:0"`
-	GrandTotal      float64       `json:"grand_total"`
-	Source          string        `json:"source" gorm:"default:dashboard"`
-	User            User          `json:"user" gorm:"foreignKey:UserID"`
-	PaymentMethod   PaymentMethod `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
+	InvoiceNumber   string         `json:"invoice_number" gorm:"unique;not null"`
+	UserID          uint           `json:"user_id"`
+	CustomerName    string         `json:"customer_name"`
+	PaymentMethodID uint           `json:"payment_method_id"`
+	PriceCategoryID *uint          `json:"price_category_id"`
+	PromoID         *uint          `json:"promo_id"`
+	Subtotal        float64        `json:"subtotal"`
+	DiscountTotal   float64        `json:"discount_total"`
+	ManualDiscount  float64        `json:"manual_discount" gorm:"default:0"`
+	AdditionalFee   float64        `json:"additional_fee" gorm:"default:0"`
+	GrandTotal      float64        `json:"grand_total"`
+	Source          string         `json:"source" gorm:"default:dashboard"`
+	AmountPaid      float64        `json:"amount_paid" gorm:"default:0"`
+	PaymentStatus   string         `json:"payment_status" gorm:"default:'lunas'"`
+	User            User           `json:"user" gorm:"foreignKey:UserID"`
+	PaymentMethod   PaymentMethod  `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
 	PriceCategory   *PriceCategory `json:"price_category" gorm:"foreignKey:PriceCategoryID"`
-	Promo           *Promo        `json:"promo" gorm:"foreignKey:PromoID"`
-	Items           []SaleItem    `json:"items" gorm:"foreignKey:SaleID"`
+	Promo           *Promo         `json:"promo" gorm:"foreignKey:PromoID"`
+	Items           []SaleItem     `json:"items" gorm:"foreignKey:SaleID"`
 }
 
 type SaleItem struct {

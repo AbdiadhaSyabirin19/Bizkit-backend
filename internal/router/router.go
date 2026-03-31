@@ -8,14 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 	r.Static("/uploads", "./uploads")
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"https://bizkit-frontend.vercel.app"},
+		AllowOrigins:     []string{"https://bizkit-frontend.vercel.app", "http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -39,6 +37,8 @@ func SetupRouter() *gin.Engine {
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", handler.Login)
+			auth.GET("/migrate-fix", handler.FixMigrate)
+			auth.GET("/sync-sales", handler.SyncSales)
 		}
 
 		// Protected routes
@@ -122,6 +122,14 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/sales/:id", handler.GetSaleByID)
 			protected.PUT("/sales/:id", handler.UpdateSale)
 			protected.DELETE("/sales/:id", handler.DeleteSale)
+			protected.GET("/sales/:id/payments", handler.GetPaymentsBySaleID)
+
+			// Piutang
+			protected.GET("/unpaid-sales", handler.GetUnpaidSales)
+			protected.GET("/receivables/:id", handler.GetReceivablePaymentByID)
+			protected.POST("/receivables", handler.CreateReceivablePayment)
+			protected.PUT("/receivables/:id", handler.UpdateReceivablePayment)
+			protected.DELETE("/receivables/:id", handler.DeleteReceivablePayment)
 
 			// Shifts — di dalam protected (butuh auth)
 			protected.POST("/shifts/open", handler.OpenShift)
@@ -137,6 +145,7 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/reports/attendance", handler.GetAttendanceReport)
 			protected.GET("/reports/shift", handler.GetShiftReport)
 			protected.GET("/reports/dashboard-summary", handler.GetDashboardSummary)
+			protected.GET("/reports/daily-advanced", handler.GetDailyAdvancedReport)
 
 			// Generic Upload
 			protected.POST("/upload", handler.UploadFile)
@@ -174,7 +183,7 @@ func SetupRouter() *gin.Engine {
 			protected.POST("/attendances/:id/checkout", handler.CheckOut)
 			protected.GET("/attendances/today", handler.GetTodayAttendance)
 			protected.GET("/attendances/history", handler.GetAttendanceHistory)
-			
+
 		}
 	}
 	return r

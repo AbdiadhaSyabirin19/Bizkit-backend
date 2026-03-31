@@ -46,11 +46,13 @@ func ConnectDB() {
 		&model.Setting{},
 		&model.Outlet{},
 		&model.PriceCategory{},
-    	&model.ProductPrice{},
+		&model.ProductPrice{},
 		&model.PromoItem{},
 		&model.PromoSpecialPrice{},
 		&model.PromoVoucher{},
 		&model.Customer{},
+		&model.ReceivablePayment{},
+		&model.ReceivablePaymentItem{},
 	)
 
 	DB = db

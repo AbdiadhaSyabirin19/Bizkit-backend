@@ -11,8 +11,9 @@ import (
 func GetSalesReport(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
+	onlyDiscounted := c.Query("only_discounted") == "true"
 
-	result, err := service.GetSalesReport(startDate, endDate)
+	result, err := service.GetSalesReport(startDate, endDate, onlyDiscounted)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return

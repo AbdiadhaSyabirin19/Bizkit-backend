@@ -257,9 +257,9 @@ func CheckAutoPromos(req CheckPromoRequest) ([]PromoResult, error) {
 // Validasi kode voucher manual dari kasir
 
 type CheckVoucherRequest struct {
-	Code     string          `json:"code" binding:"required"`
+	Code     string           `json:"code" binding:"required"`
 	Items    []CheckPromoItem `json:"items"`
-	Subtotal float64         `json:"subtotal"`
+	Subtotal float64          `json:"subtotal"`
 }
 
 func CheckVoucher(req CheckVoucherRequest) (*PromoResult, error) {
@@ -430,7 +430,7 @@ func calcDiscount(promo model.Promo, req CheckPromoRequest) float64 {
 		}
 		return discount
 	case "cut_price":
-		// Potongan harga tetap (cut_price) biasanya langsung memotong total akhir, 
+		// Potongan harga tetap (cut_price) biasanya langsung memotong total akhir,
 		// tapi kita batasi jangan sampai melebihi subtotal item yang promo
 		discount := promo.CutPrice
 		if discount > applicableSubtotal {

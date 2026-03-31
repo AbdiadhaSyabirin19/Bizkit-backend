@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"bizkit-backend/internal/model"
 	"bizkit-backend/internal/repository"
 )
 
@@ -28,7 +29,7 @@ func parsePeriod(startStr, endStr string) (time.Time, time.Time, error) {
 	return start, end, nil
 }
 
-func GetSalesReport(startStr, endStr string) (map[string]interface{}, error) {
+func GetSalesReport(startStr, endStr string, onlyDiscounted bool) (map[string]interface{}, error) {
 	start, end, err := parsePeriod(startStr, endStr)
 	if err != nil {
 		return nil, err
@@ -39,13 +40,25 @@ func GetSalesReport(startStr, endStr string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	// Filter jika hanya minta data diskon
+	var filteredSales []model.Sale
+	if onlyDiscounted {
+		for _, sale := range sales {
+			if sale.DiscountTotal > 0 || sale.ManualDiscount > 0 {
+				filteredSales = append(filteredSales, sale)
+			}
+		}
+	} else {
+		filteredSales = sales
+	}
+
 	// Rekap total
 	var totalOmzet, totalDiskon float64
 	paymentSummary := map[string]float64{}
 
-	for _, sale := range sales {
+	for _, sale := range filteredSales {
 		totalOmzet += sale.GrandTotal
-		totalDiskon += sale.DiscountTotal
+		totalDiskon += sale.DiscountTotal + sale.ManualDiscount
 		paymentSummary[sale.PaymentMethod.Name] += sale.GrandTotal
 	}
 
@@ -54,11 +67,11 @@ func GetSalesReport(startStr, endStr string) (map[string]interface{}, error) {
 			"start": startStr,
 			"end":   endStr,
 		},
-		"total_transaksi":  len(sales),
-		"total_omzet":      totalOmzet,
-		"total_diskon":     totalDiskon,
-		"payment_summary":  paymentSummary,
-		"sales":            sales,
+		"total_transaksi": len(filteredSales),
+		"total_omzet":     totalOmzet,
+		"total_diskon":    totalDiskon,
+		"payment_summary": paymentSummary,
+		"sales":           filteredSales,
 	}, nil
 }
 
@@ -228,7 +241,7 @@ func GetDashboardSummary() (map[string]interface{}, error) {
 
 	// 3. Active Shift
 	activeShift, _ := repository.GetActiveShiftAny()
-	
+
 	// 4. Low Stock Products (misal stock <= 5)
 	products, _ := repository.GetAllProducts("")
 	lowStockCount := 0
@@ -239,11 +252,11 @@ func GetDashboardSummary() (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"date":           now.Format("2006-01-02"),
-		"omzet_today":    omzetToday,
-		"trans_count":    transCount,
+		"date":             now.Format("2006-01-02"),
+		"omzet_today":      omzetToday,
+		"trans_count":      transCount,
 		"has_active_shift": activeShift != nil && activeShift.ID != 0,
-		"active_shift":   activeShift,
-		"low_stock_count": lowStockCount,
+		"active_shift":     activeShift,
+		"low_stock_count":  lowStockCount,
 	}, nil
 }

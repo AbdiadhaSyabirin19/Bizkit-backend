@@ -170,6 +170,8 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		ManualDiscount:  manualDiscount,
 		AdditionalFee:   additionalFee,
 		GrandTotal:      grandTotal,
+		AmountPaid:      grandTotal,
+		PaymentStatus:   "lunas",
 		Source:          req.Source,
 		Items:           saleItems,
 	}
@@ -180,6 +182,26 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 
 	if err := repository.CreateSale(&sale); err != nil {
 		return nil, errors.New("Gagal membuat transaksi")
+	}
+
+	// Auto-create initial payment history
+	payment := model.ReceivablePayment{
+		PaymentDate:     time.Now(),
+		CustomerName:    sale.CustomerName,
+		PaymentMethodID: sale.PaymentMethodID,
+		Notes:           "Pembayaran otomatis (Transaksi Baru)",
+		Amount:          sale.GrandTotal,
+		UserID:          userID,
+		Items: []model.ReceivablePaymentItem{
+			{
+				SaleID:     sale.ID,
+				AmountPaid: sale.GrandTotal,
+			},
+		},
+	}
+	errPay := repository.CreateReceivablePayment(&payment)
+	if errPay != nil {
+		fmt.Printf("ERROR AUTO-CREATE PAYMENT: %v\n", errPay)
 	}
 
 	if req.PromoID != nil {

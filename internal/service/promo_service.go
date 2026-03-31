@@ -304,15 +304,29 @@ func CheckVoucher(req CheckVoucherRequest) (*PromoResult, error) {
 // ── Helper Functions ──────────────────────────────────────────────────────
 
 func isPromoValid(promo model.Promo, now time.Time) bool {
-	// Cek tanggal
-	if !promo.StartDate.IsZero() && now.Before(promo.StartDate) {
-		return false
+	// 1. Cek rentang waktu absolut (Start Date + Time s/d End Date + Time)
+	loc := now.Location()
+
+	startTime := promo.StartTime
+	if startTime == "" {
+		startTime = "00:00"
 	}
-	if !promo.EndDate.IsZero() && now.After(promo.EndDate.Add(24*time.Hour)) {
+	endTime := promo.EndTime
+	if endTime == "" {
+		endTime = "23:59"
+	}
+
+	startStr := fmt.Sprintf("%s %s", promo.StartDate.Format("2006-01-02"), startTime)
+	endStr := fmt.Sprintf("%s %s", promo.EndDate.Format("2006-01-02"), endTime)
+
+	startDT, _ := time.ParseInLocation("2006-01-02 15:04", startStr, loc)
+	endDT, _ := time.ParseInLocation("2006-01-02 15:04", endStr, loc)
+
+	if now.Before(startDT) || now.After(endDT) {
 		return false
 	}
 
-	// Cek hari aktif (1=Senin ... 7=Minggu)
+	// 2. Cek hari aktif (1=Senin ... 7=Minggu)
 	if promo.ActiveDays != "" {
 		dayNum := int(now.Weekday())
 		if dayNum == 0 {
@@ -327,14 +341,6 @@ func isPromoValid(promo model.Promo, now time.Time) bool {
 			}
 		}
 		if !found {
-			return false
-		}
-	}
-
-	// Cek jam
-	if promo.StartTime != "" && promo.EndTime != "" {
-		currentTime := now.Format("15:04")
-		if currentTime < promo.StartTime || currentTime > promo.EndTime {
 			return false
 		}
 	}

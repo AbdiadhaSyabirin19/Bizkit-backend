@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"time"
+	_ "time/tzdata"
 
 	"bizkit-backend/config"
 	"bizkit-backend/internal/router"
@@ -22,6 +24,15 @@ import (
 
 func main() {
 	godotenv.Load()
+
+	// Set timezone to Asia/Jakarta
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		log.Println("Gagal memuat timezone Asia/Jakarta:", err)
+	} else {
+		time.Local = loc
+		log.Println("Timezone diatur ke Asia/Jakarta")
+	}
 
 	config.ConnectDB()
 

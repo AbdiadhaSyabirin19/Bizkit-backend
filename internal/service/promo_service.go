@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"bizkit-backend/internal/model"
 	"bizkit-backend/internal/repository"
@@ -57,8 +58,9 @@ func GetPromoByID(id uint) (*model.Promo, error) {
 }
 
 func CreatePromo(req PromoRequest) (*model.Promo, error) {
-	startDate, _ := time.Parse("2006-01-02", req.StartDate)
-	endDate, _ := time.Parse("2006-01-02", req.EndDate)
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	startDate, _ := time.ParseInLocation("2006-01-02", req.StartDate, loc)
+	endDate, _ := time.ParseInLocation("2006-01-02", req.EndDate, loc)
 
 	if req.Status == "" {
 		req.Status = "active"
@@ -127,8 +129,9 @@ func UpdatePromo(id uint, req PromoRequest) (*model.Promo, error) {
 		return nil, errors.New("Promo tidak ditemukan")
 	}
 
-	startDate, _ := time.Parse("2006-01-02", req.StartDate)
-	endDate, _ := time.Parse("2006-01-02", req.EndDate)
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	startDate, _ := time.ParseInLocation("2006-01-02", req.StartDate, loc)
+	endDate, _ := time.ParseInLocation("2006-01-02", req.EndDate, loc)
 
 	promo.Name = req.Name
 	promo.PromoType = req.PromoType
@@ -304,9 +307,11 @@ func CheckVoucher(req CheckVoucherRequest) (*PromoResult, error) {
 // ── Helper Functions ──────────────────────────────────────────────────────
 
 func isPromoValid(promo model.Promo, now time.Time) bool {
-	// 1. Cek rentang waktu absolut (Start Date + Time s/d End Date + Time)
-	loc := now.Location()
+	// 1. Pastikan waktu saat ini menggunakan zona Asia/Jakarta
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	now = now.In(loc)
 
+	// 2. Tentukan batasan waktu absolut (Tanggal + Jam)
 	startTime := promo.StartTime
 	if startTime == "" {
 		startTime = "00:00"
@@ -322,11 +327,16 @@ func isPromoValid(promo model.Promo, now time.Time) bool {
 	startDT, _ := time.ParseInLocation("2006-01-02 15:04", startStr, loc)
 	endDT, _ := time.ParseInLocation("2006-01-02 15:04", endStr, loc)
 
+	// Jika StartTime dan EndTime sama, asumsikan aktif 24 jam di hari tersebut
+	if startTime == endTime && startTime != "00:00" {
+		endDT = endDT.Add(24 * time.Hour)
+	}
+
 	if now.Before(startDT) || now.After(endDT) {
 		return false
 	}
 
-	// 2. Cek hari aktif (1=Senin ... 7=Minggu)
+	// 3. Cek hari aktif (1=Senin ... 7=Minggu)
 	if promo.ActiveDays != "" {
 		dayNum := int(now.Weekday())
 		if dayNum == 0 {

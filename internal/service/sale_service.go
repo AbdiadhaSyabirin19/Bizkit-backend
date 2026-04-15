@@ -3,11 +3,15 @@ package service
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"bizkit-backend/config"
 	"bizkit-backend/internal/model"
 	"bizkit-backend/internal/repository"
+
+	"gorm.io/gorm"
 )
 
 type SaleItemVariantRequest struct {
@@ -30,6 +34,53 @@ type SaleRequest struct {
 	ManualDiscount  float64           `json:"manual_discount"`
 	AdditionalFee   float64           `json:"additional_fee"`
 	Items           []SaleItemRequest `json:"items" binding:"required"`
+	// OfflineID: UUID v4 yang dibuat oleh device klien. Wajib ada untuk sync offline.
+	OfflineID *string `json:"offline_id"`
+	// SoldAt: waktu transaksi asli di device (ISO 8601). Opsional.
+	SoldAt *time.Time `json:"sold_at"`
+}
+
+// ── Offline Sync Types ─────────────────────────────────────────────────────
+
+// MaxSyncBatchSize membatasi jumlah transaksi per sekali sync untuk melindungi server.
+const MaxSyncBatchSize = 100
+
+// uuidRegex untuk validasi format UUID v4.
+var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+// isValidUUID memvalidasi apakah string s adalah UUID v4 yang valid.
+func isValidUUID(s string) bool {
+	return uuidRegex.MatchString(strings.ToLower(s))
+}
+
+// SyncRequest adalah body request untuk endpoint POST /api/sales/sync.
+type SyncRequest struct {
+	Transactions []SaleRequest `json:"transactions" binding:"required"`
+}
+
+// SyncItemStatus mendefinisikan kemungkinan status hasil per item.
+type SyncItemStatus string
+
+const (
+	SyncCreated SyncItemStatus = "created"
+	SyncSkipped SyncItemStatus = "skipped"
+	SyncFailed  SyncItemStatus = "failed"
+)
+
+// SyncItemResult adalah hasil proses untuk satu transaksi dalam batch sync.
+type SyncItemResult struct {
+	OfflineID     string         `json:"offline_id"`
+	Status        SyncItemStatus `json:"status"`
+	InvoiceNumber string         `json:"invoice_number,omitempty"`
+	Reason        string         `json:"reason,omitempty"`
+}
+
+// SyncSummary adalah ringkasan total hasil sync.
+type SyncSummary struct {
+	Total   int `json:"total"`
+	Created int `json:"created"`
+	Skipped int `json:"skipped"`
+	Failed  int `json:"failed"`
 }
 
 func generateInvoiceNumber() string {
@@ -148,7 +199,108 @@ func calculateVariantExtra(item model.SaleItem) float64 {
 	return extra
 }
 
-func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
+// SyncOfflineSales memproses batch transaksi offline secara atomik per item.
+// Setiap item dijalankan dalam transaksi DB tersendiri agar kegagalan satu item
+// tidak mempengaruhi item lain yang sudah sukses.
+func SyncOfflineSales(transactions []SaleRequest, userID uint) ([]SyncItemResult, SyncSummary, error) {
+	if len(transactions) > MaxSyncBatchSize {
+		return nil, SyncSummary{}, fmt.Errorf("jumlah transaksi melebihi batas maksimal %d per sekali sync", MaxSyncBatchSize)
+	}
+
+	results := make([]SyncItemResult, 0, len(transactions))
+	summary := SyncSummary{Total: len(transactions)}
+
+	for _, req := range transactions {
+		// Setiap item wajib punya offline_id
+		if req.OfflineID == nil || *req.OfflineID == "" {
+			results = append(results, SyncItemResult{
+				OfflineID: "",
+				Status:    SyncFailed,
+				Reason:    "offline_id wajib diisi untuk sinkronisasi",
+			})
+			summary.Failed++
+			continue
+		}
+
+		offlineID := *req.OfflineID
+
+		// Validasi format UUID v4
+		if !isValidUUID(offlineID) {
+			results = append(results, SyncItemResult{
+				OfflineID: offlineID,
+				Status:    SyncFailed,
+				Reason:    "offline_id harus berformat UUID v4 (contoh: 550e8400-e29b-41d4-a716-446655440000)",
+			})
+			summary.Failed++
+			continue
+		}
+
+		// Cek apakah offline_id sudah pernah disinkronisasi (idempotency check)
+		var existing model.Sale
+		if err := config.DB.Where("offline_id = ?", offlineID).First(&existing).Error; err == nil {
+			// Record sudah ada → skip, jangan insert lagi
+			results = append(results, SyncItemResult{
+				OfflineID:     offlineID,
+				Status:        SyncSkipped,
+				InvoiceNumber: existing.InvoiceNumber,
+				Reason:        "Transaksi sudah tersinkronisasi sebelumnya",
+			})
+			summary.Skipped++
+			continue
+		}
+
+		// Tandai source sebagai offline jika belum diset
+		if req.Source == "" {
+			req.Source = "offline"
+		}
+
+		// Jalankan create dalam DB transaction tersendiri per item.
+		// Jika satu item gagal (mis. produk tidak ditemukan), item lain tidak ikut rollback.
+		var createdSale *model.Sale
+		txErr := config.DB.Transaction(func(tx *gorm.DB) error {
+			sale, err := createSaleInternal(req, userID)
+			if err != nil {
+				return err
+			}
+			createdSale = sale
+			return nil
+		})
+
+		if txErr != nil {
+			// Cek apakah ini duplicate key error dari DB (race condition)
+			errMsg := txErr.Error()
+			if strings.Contains(errMsg, "Duplicate entry") || strings.Contains(errMsg, "duplicate key") || strings.Contains(errMsg, "UNIQUE constraint") {
+				// Diperlakukan sebagai skipped karena record sudah ada
+				results = append(results, SyncItemResult{
+					OfflineID: offlineID,
+					Status:    SyncSkipped,
+					Reason:    "Transaksi sudah tersinkronisasi (duplicate key)",
+				})
+				summary.Skipped++
+			} else {
+				results = append(results, SyncItemResult{
+					OfflineID: offlineID,
+					Status:    SyncFailed,
+					Reason:    txErr.Error(),
+				})
+				summary.Failed++
+			}
+			continue
+		}
+
+		results = append(results, SyncItemResult{
+			OfflineID:     offlineID,
+			Status:        SyncCreated,
+			InvoiceNumber: createdSale.InvoiceNumber,
+		})
+		summary.Created++
+	}
+
+	return results, summary, nil
+}
+
+// createSaleInternal adalah inti pembuatan transaksi, digunakan oleh CreateSale dan SyncOfflineSales.
+func createSaleInternal(req SaleRequest, userID uint) (*model.Sale, error) {
 	if len(req.Items) == 0 {
 		return nil, errors.New("Item transaksi tidak boleh kosong")
 	}
@@ -156,6 +308,11 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 	saleItems, subtotal, discountTotal, manualDiscount, additionalFee, grandTotal, err := calculateSaleDetails(req)
 	if err != nil {
 		return nil, err
+	}
+
+	source := req.Source
+	if source == "" {
+		source = "dashboard"
 	}
 
 	sale := model.Sale{
@@ -172,16 +329,14 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 		GrandTotal:      grandTotal,
 		AmountPaid:      grandTotal,
 		PaymentStatus:   "lunas",
-		Source:          req.Source,
+		Source:          source,
 		Items:           saleItems,
-	}
-
-	if sale.Source == "" {
-		sale.Source = "dashboard"
+		OfflineID:       req.OfflineID,
+		SoldAt:          req.SoldAt,
 	}
 
 	if err := repository.CreateSale(&sale); err != nil {
-		return nil, errors.New("Gagal membuat transaksi")
+		return nil, errors.New("Gagal membuat transaksi: " + err.Error())
 	}
 
 	// Auto-create initial payment history
@@ -210,6 +365,11 @@ func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
 
 	result, _ := repository.GetSaleByID(sale.ID)
 	return result, nil
+}
+
+// CreateSale adalah endpoint transaksi online normal. Mendelegasikan ke createSaleInternal.
+func CreateSale(req SaleRequest, userID uint) (*model.Sale, error) {
+	return createSaleInternal(req, userID)
 }
 
 func UpdateSale(id uint, req SaleRequest) (*model.Sale, error) {

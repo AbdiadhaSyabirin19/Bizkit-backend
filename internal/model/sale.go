@@ -1,6 +1,10 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Sale struct {
 	gorm.Model
@@ -18,11 +22,19 @@ type Sale struct {
 	Source          string         `json:"source" gorm:"default:dashboard"`
 	AmountPaid      float64        `json:"amount_paid" gorm:"default:0"`
 	PaymentStatus   string         `json:"payment_status" gorm:"default:'lunas'"`
-	User            User           `json:"user" gorm:"foreignKey:UserID"`
-	PaymentMethod   PaymentMethod  `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
-	PriceCategory   *PriceCategory `json:"price_category" gorm:"foreignKey:PriceCategoryID"`
-	Promo           *Promo         `json:"promo" gorm:"foreignKey:PromoID"`
-	Items           []SaleItem     `json:"items" gorm:"foreignKey:SaleID"`
+	// OfflineID adalah idempotency key yang dibuat oleh device klien (format UUID v4).
+	// Kolom ini nullable agar transaksi online normal tidak wajib mengisinya.
+	// uniqueIndex di level DB mencegah race condition double-insert.
+	OfflineID *string `json:"offline_id" gorm:"uniqueIndex;size:36;default:null"`
+	// SoldAt adalah waktu transaksi asli dari device klien (saat offline).
+	// Jika nil, waktu yang digunakan adalah waktu server saat record dibuat.
+	SoldAt *time.Time `json:"sold_at" gorm:"default:null"`
+
+	User          User           `json:"user" gorm:"foreignKey:UserID"`
+	PaymentMethod PaymentMethod  `json:"payment_method" gorm:"foreignKey:PaymentMethodID"`
+	PriceCategory *PriceCategory `json:"price_category" gorm:"foreignKey:PriceCategoryID"`
+	Promo         *Promo         `json:"promo" gorm:"foreignKey:PromoID"`
+	Items         []SaleItem     `json:"items" gorm:"foreignKey:SaleID"`
 }
 
 type SaleItem struct {

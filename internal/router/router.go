@@ -115,10 +115,12 @@ func SetupRouter() *gin.Engine {
 			protected.POST("/promos/check", handler.CheckAutoPromos)
 			protected.POST("/promos/check-voucher", handler.CheckVoucher)
 
-			// Sales — /daily harus SEBELUM /:id
+			// Sales — /daily dan /sync harus SEBELUM /:id
 			protected.POST("/sales", handler.CreateSale)
 			protected.GET("/sales", handler.GetAllSales)
 			protected.GET("/sales/daily", handler.GetDailySales)
+			// POST /sales/sync — sinkronisasi batch transaksi offline (idempotent)
+			protected.POST("/sales/sync", handler.SyncOfflineSales)
 			protected.GET("/sales/:id", handler.GetSaleByID)
 			protected.PUT("/sales/:id", handler.UpdateSale)
 			protected.DELETE("/sales/:id", handler.DeleteSale)
